@@ -4,6 +4,24 @@
 	<meta charset="utf-8">
 	<title>Examclock</title>
 	<script src="examclock.js"></script>
+	<style>
+		/* announcements typed here are shown to students under the clock */
+		#announcements {
+			display: block;
+			box-sizing: border-box;
+			width: 98vw;
+			margin-top: 10px;
+			padding: 10px 20px;
+			font: 40px serif;
+			color: darkred;
+			background: #ffffaa;
+			border: 1px solid #ccc;
+			resize: vertical;
+		}
+		#announcements:placeholder-shown {
+			font-size: 20px;
+		}
+	</style>
 </head>
 
 <body>
@@ -16,6 +34,8 @@ Duration in minutes: <input id="dur_in_min" type="text" size="4"/>
 <canvas id="canvasOne">
 Your browser does not support the HTML5 Canvas.
 </canvas>
+
+<textarea id="announcements" rows="3" placeholder="Type announcements for students here (e.g. corrections to the exam)."></textarea>
 
 <p style="text-align:right"><a href="https://github.com/tjd1234/examclock">Source code.</a></p>
 
