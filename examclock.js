@@ -78,6 +78,19 @@
     const currentTimeString = (include_seconds = false) => formatTime(new Date(), include_seconds);
 
     //
+    // time remaining, e.g. "45 minutes left"; over an hour it's given in
+    // hours and minutes, e.g. "2 hrs 59 min left", "1 hr 30 min left", or
+    // "3 hrs left"
+    //
+    const minutesLeftString = (minutes) => {
+        if (minutes <= 60) return minutes + " minutes left";
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        const hrs = hours === 1 ? "hr" : "hrs";
+        return mins === 0 ? `${hours} ${hrs} left` : `${hours} ${hrs} ${mins} min left`;
+    };
+
+    //
     // keep the screen from dimming or sleeping while the clock is running
     //
     const keepScreenAwake = () => {
@@ -594,11 +607,11 @@
                 big_msg.color = dark_red;
             } else if (exam.remaining.minutes() <= 10) {
                 bar.color = dark_orange;
-                big_msg.msg = exam.remaining.minutes() + " minutes left";
+                big_msg.msg = minutesLeftString(exam.remaining.minutes());
                 big_msg.color = dark_orange;
             } else {
                 bar.color = "blue";
-                big_msg.msg = exam.remaining.minutes() + " minutes left";
+                big_msg.msg = minutesLeftString(exam.remaining.minutes());
                 big_msg.color = "blue";
             }
 
