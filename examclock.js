@@ -303,6 +303,11 @@
             // hiding the form gives its space to the clock
             dur_form.hidden = true;
             reset_button.hidden = false;
+            // during the exam the announcement box hides its hint (see
+            // index.html) and is only one line tall until something is typed
+            document.body.classList.add("exam_running");
+            announcements.rows = 1;
+            fitAnnouncements();
             keepScreenAwake();
 
             // start the animation loop

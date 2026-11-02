@@ -45,6 +45,11 @@
 		#announcements:placeholder-shown {
 			font-size: 20px;
 		}
+		/* during the exam, students don't need the hint; it shows again
+		   while you're typing in the box */
+		.exam_running #announcements:not(:focus)::placeholder {
+			color: transparent;
+		}
 
 		/* the reminder editor is on the left, the buttons on the right */
 		#footer {
