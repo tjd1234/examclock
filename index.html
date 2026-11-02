@@ -26,10 +26,12 @@
 
 <body>
 
+<form id="dur_form">
 <p id="dur_span">
-Duration in minutes: <input id="dur_in_min" type="text" size="4"/>
-<button id="startbutton">Start Timer</button>
+Duration in minutes: <input id="dur_in_min" type="number" min="1" max="600" step="1" required style="width: 5em"/>
+<button id="startbutton" type="submit">Start Timer</button>
 </p>
+</form>
 
 <canvas id="canvasOne">
 Your browser does not support the HTML5 Canvas.

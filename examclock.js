@@ -240,17 +240,16 @@
             setInterval(animationLoop, 1000 / frame_rate);
         };
 
-        start_button.onclick = () => {
-            if (isNaN(dur_input.value) || dur_input.value === "") {
-                alert("Please enter duration in minutes.");
-                return;
-            }
+        // the browser checks the duration against the input's min/max/step
+        // and only submits the form (via button or Enter) when it's valid
+        document.getElementById("dur_form").addEventListener("submit", (event) => {
+            event.preventDefault();
             const now = new Date();
-            const end = new Date(now.getTime() + mins_to_millis(parseInt(dur_input.value, 10)));
+            const end = new Date(now.getTime() + mins_to_millis(dur_input.valueAsNumber));
             const new_exam = makeExam(now, end);
             saveExam(new_exam);
             startExam(new_exam);
-        };
+        });
 
         reset_button.onclick = () => {
             if (!confirm("Reset the timer and clear the announcement?")) return;
