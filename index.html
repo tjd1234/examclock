@@ -28,6 +28,59 @@
 			display: block;
 		}
 
+		/* before the timer is started, the clock area shows the pre-exam
+		   instructions instead of the clock; they can be edited in place */
+		body:not(.exam_running) #canvasOne,
+		.exam_running #instructions_box {
+			display: none;
+		}
+		#instructions_box {
+			position: relative;
+			box-sizing: border-box;
+			height: 100%;
+			padding: 0 20px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: auto;
+			background: #ffffaa;
+			font-size: clamp(18px, 3.2vw, 56px);
+		}
+		#instructions_box .heading {
+			margin: 0 0 0.3em;
+			font-weight: bold;
+		}
+		#instructions_list {
+			margin: 0;
+			padding: 0.1em 0.3em 0.1em 1.3em;
+			outline: 2px dashed transparent;
+			outline-offset: 4px;
+		}
+		#instructions_list:hover,
+		#instructions_list:focus {
+			outline-color: #999;
+		}
+		#instructions_list li {
+			margin: 0.3em 0;
+		}
+		#instructions_list:empty::before {
+			content: "(no instructions: click here to add some)";
+			color: #999;
+		}
+		#instructions_box .hint {
+			position: absolute;
+			bottom: 6px;
+			left: 0;
+			right: 0;
+			margin: 0;
+			text-align: center;
+			font-size: 14px;
+			color: #777;
+		}
+		:root:fullscreen #instructions_box .hint {
+			display: none;
+		}
+
 		/* announcements typed here are shown to students under the clock */
 		#announcements {
 			display: block;
@@ -97,6 +150,13 @@ Duration in minutes: <input id="dur_in_min" type="number" min="1" max="600" step
 </form>
 
 <div id="clock_area">
+<div id="instructions_box">
+<div>
+<p class="heading">Before the exam starts, please:</p>
+<ul id="instructions_list" contenteditable="true" spellcheck="false"></ul>
+</div>
+<p class="hint">Click the instructions to change them; press Enter for a new one.</p>
+</div>
 <canvas id="canvasOne">
 Your browser does not support the HTML5 Canvas.
 </canvas>

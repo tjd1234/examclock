@@ -164,6 +164,17 @@
     const announcement_key = "examclock.announcement";
     // unlike the exam and announcement, these are kept when the timer is reset
     const reminders_key = "examclock.reminders";
+    const instructions_key = "examclock.instructions";
+
+    //
+    // instructions shown in place of the clock until the timer is started;
+    // they can be edited right where they're shown
+    //
+    const default_instructions = [
+        "Put your bag and jacket at the front of the room.",
+        "Put your phone, computer, and calculator at the front too.",
+        "Put your student ID on your desk where we can see it.",
+    ];
 
     //
     // reminder messages the clock shows one at a time; they can be edited
@@ -180,7 +191,7 @@
         "Think!",
     ];
 
-    // one message per line, ignoring blank lines
+    // one message (or instruction) per line, ignoring blank lines
     const parseReminders = (text) => text.split("\n").map((line) => line.trim()).filter((line) => line !== "");
 
     // a saved exam is resumed until this long after it ends
@@ -450,6 +461,40 @@
             reminders_input.value = defaults;
             reminders_input.dispatchEvent(new Event("input"));
         };
+
+        //
+        // The pre-exam instructions are an editable list (contenteditable),
+        // one instruction per item. Typing can leave odd markup behind (e.g.
+        // pasted formatting), so only the text is saved, one instruction per
+        // line, and the list is rebuilt from it when editing stops.
+        //
+        const instructions_list = document.getElementById("instructions_list");
+
+        const showInstructions = (lines) => {
+            instructions_list.replaceChildren(...lines.map((line) => {
+                const item = document.createElement("li");
+                item.textContent = line;
+                return item;
+            }));
+        };
+
+        const saved_instructions = storage.get(instructions_key);
+        showInstructions(saved_instructions === null ? default_instructions : parseReminders(saved_instructions));
+
+        const typedInstructions = () => parseReminders(instructions_list.innerText);
+        instructions_list.addEventListener("input", () => {
+            storage.set(instructions_key, typedInstructions().join("\n"));
+        });
+        instructions_list.addEventListener("blur", () => showInstructions(typedInstructions()));
+        // paste plain text only
+        instructions_list.addEventListener("paste", (event) => {
+            event.preventDefault();
+            document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
+        });
+        // Escape finishes editing
+        instructions_list.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") instructions_list.blur();
+        });
 
         // a narrower window wraps the announcement onto more lines
         window.addEventListener("resize", fitAnnouncements);
