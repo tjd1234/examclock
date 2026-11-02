@@ -26,6 +26,11 @@
     const dark_orange = "#c05000";
 
     //
+    // used in the last minute; plain "red" on yellow is 3.8:1, this is 5.5:1
+    //
+    const dark_red = "#d00000";
+
+    //
     // animation frame rate, used only while a reminder message is moving
     //
     const frame_rate = 30;
@@ -570,10 +575,10 @@
                 big_msg.color = "green";
                 scroll.state = "finished";
             } else if (exam.remaining.minutes() <= 1) {
-                bar.color = "red";
+                bar.color = dark_red;
                 const seconds = exam.remaining.seconds();
                 big_msg.msg = seconds + (seconds === 1 ? " second left" : " seconds left");
-                big_msg.color = "red";
+                big_msg.color = dark_red;
             } else if (exam.remaining.minutes() <= 10) {
                 bar.color = dark_orange;
                 big_msg.msg = exam.remaining.minutes() + " minutes left";
