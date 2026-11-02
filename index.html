@@ -5,11 +5,32 @@
 	<title>Examclock</title>
 	<script src="examclock.js"></script>
 	<style>
+		/* the page fills the window, and the clock gets whatever height
+		   the other parts don't use (see sizeCanvas in examclock.js) */
+		html, body {
+			height: 100%;
+		}
+		body {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 8px;
+			display: flex;
+			flex-direction: column;
+		}
+		#clock_area {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow: hidden;
+		}
+		#canvasOne {
+			display: block;
+		}
+
 		/* announcements typed here are shown to students under the clock */
 		#announcements {
 			display: block;
 			box-sizing: border-box;
-			width: 98vw;
+			width: 100%;
 			margin-top: 10px;
 			padding: 10px 20px;
 			font: 40px serif;
@@ -34,13 +55,16 @@ Duration in minutes: <input id="dur_in_min" type="number" min="1" max="600" step
 </p>
 </form>
 
+<div id="clock_area">
 <canvas id="canvasOne">
 Your browser does not support the HTML5 Canvas.
 </canvas>
+</div>
 
 <textarea id="announcements" rows="3" placeholder="Type announcements for students here (e.g. corrections to the exam)."></textarea>
 
 <p style="text-align:right">
+<button id="fullscreenbutton" hidden>Full screen</button>
 <button id="resetbutton" hidden>Reset timer</button>
 <a href="https://github.com/tjd1234/examclock">Source code.</a>
 </p>

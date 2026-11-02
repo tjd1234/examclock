@@ -209,21 +209,34 @@
         const context = canvas.getContext("2d");
 
         //
-        // Everything is drawn in CSS pixels, in a view.width x view.height
-        // area. The canvas itself has devicePixelRatio times as many pixels,
-        // so text and lines are sharp on high-density screens and projectors.
+        // The clock is laid out for an area at least design.width x
+        // design.height, and scaled up (or down) to fill the space the page
+        // gives it, so it uses the whole screen on a big projector.
         //
-        const view = { width: 0, height: 400 };
+        // Everything is drawn in layout units, in a view.width x view.height
+        // area: view.height is always design.height, and view.width stretches
+        // to fill the window's width. The canvas itself has devicePixelRatio
+        // times as many pixels as it takes on screen, so text and lines are
+        // sharp on high-density screens and projectors.
+        //
+        const clock_area = document.getElementById("clock_area");
+        const design = { width: 800, height: 400 };
+        const view = { width: design.width, height: design.height };
 
         const sizeCanvas = () => {
             const ratio = window.devicePixelRatio || 1;
-            view.width = 0.98 * window.innerWidth;
-            canvas.style.width = view.width + "px";
-            canvas.style.height = view.height + "px";
-            canvas.width = Math.round(view.width * ratio);
-            canvas.height = Math.round(view.height * ratio);
+            const css_width = clock_area.clientWidth;
+            const scale = Math.max(0.25, Math.min(
+                clock_area.clientHeight / design.height,
+                css_width / design.width,
+            ));
+            view.width = css_width / scale;
+            canvas.style.width = css_width + "px";
+            canvas.style.height = view.height * scale + "px";
+            canvas.width = Math.round(css_width * ratio);
+            canvas.height = Math.round(view.height * scale * ratio);
             // resizing the canvas resets its transform, so scale it again
-            context.setTransform(ratio, 0, 0, ratio, 0, 0);
+            context.setTransform(ratio * scale, 0, 0, ratio * scale, 0, 0);
         };
 
         sizeCanvas();
@@ -236,9 +249,8 @@
         //
         // set event handlers and other variables
         //
-        const start_button = document.getElementById("startbutton");
+        const dur_form = document.getElementById("dur_form");
         const dur_input = document.getElementById("dur_in_min");
-        const dur_span = document.getElementById("dur_span");
         const reset_button = document.getElementById("resetbutton");
         const announcements = document.getElementById("announcements");
         dur_input.value = 180;
@@ -249,8 +261,8 @@
         const startExam = (new_exam) => {
             exam = new_exam;
             bar.set_msg();
-            start_button.style.visibility = "hidden";
-            dur_span.style.visibility = "hidden";
+            // hiding the form gives its space to the clock
+            dur_form.hidden = true;
             reset_button.hidden = false;
             keepScreenAwake();
 
@@ -260,7 +272,7 @@
 
         // the browser checks the duration against the input's min/max/step
         // and only submits the form (via button or Enter) when it's valid
-        document.getElementById("dur_form").addEventListener("submit", (event) => {
+        dur_form.addEventListener("submit", (event) => {
             event.preventDefault();
             const now = new Date();
             const end = new Date(now.getTime() + mins_to_millis(dur_input.valueAsNumber));
@@ -302,28 +314,50 @@
             fitAnnouncements();
         });
 
-        // also called when the screen's pixel density changes (e.g. browser
-        // zoom, or moving the window to another monitor)
-        const windowResized = () => {
+        // a narrower window wraps the announcement onto more lines
+        window.addEventListener("resize", fitAnnouncements);
+
+        // Called whenever the clock's area changes size: the window is
+        // resized, the announcement grows or shrinks, the duration form is
+        // hidden, or full screen is turned on or off.
+        const clockAreaResized = () => {
             sizeCanvas();
             bar.resize();
-            // a narrower window wraps the announcement onto more lines
-            fitAnnouncements();
             // the canvas is cleared on resize, so repaint it before the exam starts
             if (exam === null) background(yellow);
         };
-        window.addEventListener("resize", windowResized);
+        new ResizeObserver(clockAreaResized).observe(clock_area);
 
-        // a change in pixel density doesn't always fire "resize", so watch
+        // a change in pixel density (e.g. browser zoom, or moving the window
+        // to another monitor) doesn't always resize the clock's area, so watch
         // for it directly; the query is for the current density, so it's
         // re-created after each change
         const watchPixelRatio = () => {
             matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener("change", () => {
-                windowResized();
+                clockAreaResized();
                 watchPixelRatio();
             }, { once: true });
         };
         watchPixelRatio();
+
+        //
+        // full screen hides the browser's toolbars, leaving more room for the clock
+        //
+        const fullscreen_button = document.getElementById("fullscreenbutton");
+        if (document.fullscreenEnabled) {
+            fullscreen_button.hidden = false;
+            fullscreen_button.onclick = () => {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    document.documentElement.requestFullscreen()
+                        .catch((err) => log(`full screen failed: ${err.message}`));
+                }
+            };
+            document.addEventListener("fullscreenchange", () => {
+                fullscreen_button.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+            });
+        }
 
         //
         // helper functions
