@@ -117,13 +117,16 @@
 
     const mins_to_millis = (m) => 60 * m * 1000;
 
-    const makeExam = (start, end) => {
+    // added_millis is how much time has been added since the exam started
+    // (see extendExam), so students can be shown the change
+    const makeExam = (start, end, added_millis = 0) => {
         const dur_in_millis = end.getTime() - start.getTime();
         return {
             time: {
                 start,
                 end,
             },
+            added_millis,
             duration: {
                 millis: dur_in_millis,
                 seconds: dur_in_millis / 1000,
@@ -187,6 +190,7 @@
         storage.set(exam_key, JSON.stringify({
             start: exam.time.start.getTime(),
             end: exam.time.end.getTime(),
+            added: exam.added_millis,
         }));
     };
 
@@ -195,7 +199,7 @@
         try {
             const saved = JSON.parse(storage.get(exam_key));
             if (saved && Date.now() < saved.end + resume_grace_millis) {
-                return makeExam(new Date(saved.start), new Date(saved.end));
+                return makeExam(new Date(saved.start), new Date(saved.end), saved.added ?? 0);
             }
         } catch {
             // corrupt saved data: fall through and discard it
@@ -304,6 +308,7 @@
         const dur_form = document.getElementById("dur_form");
         const dur_input = document.getElementById("dur_in_min");
         const reset_button = document.getElementById("resetbutton");
+        const add_buttons = document.querySelectorAll("[data-add-minutes]");
         const announcements = document.getElementById("announcements");
         dur_input.value = 180;
 
@@ -316,6 +321,7 @@
             // hiding the form gives its space to the clock
             dur_form.hidden = true;
             reset_button.hidden = false;
+            add_buttons.forEach((button) => { button.hidden = false; });
             // during the exam the announcement box hides its hint (see
             // index.html) and is only one line tall until something is typed
             document.body.classList.add("exam_running");
@@ -366,6 +372,30 @@
             const new_exam = makeExam(now, end);
             saveExam(new_exam);
             startExam(new_exam);
+        });
+
+        //
+        // add time to a running exam, e.g. if it started late or was
+        // interrupted; if it has already finished, the time is added from
+        // now, so the clock starts counting down again
+        //
+        const extendExam = (minutes) => {
+            const old_end = exam.time.end.getTime();
+            const new_end = Math.max(old_end, Date.now()) + mins_to_millis(minutes);
+            exam = makeExam(exam.time.start, new Date(new_end), exam.added_millis + mins_to_millis(minutes));
+            saveExam(exam);
+            bar.set_msg();
+            // reminders were stopped when the exam finished, so start them again
+            if (scroll.state === "finished") {
+                scroll.state = "hiding";
+                scroll.y = 0;
+                scroll.last_change = Date.now();
+            }
+            redrawNow();
+        };
+
+        add_buttons.forEach((button) => {
+            button.onclick = () => extendExam(Number(button.dataset.addMinutes));
         });
 
         reset_button.onclick = () => {
@@ -508,7 +538,10 @@
             color: "red",
             set_msg() {
                 this.start_msg = label.make({ msg: `Start at ${formatTime(exam.time.start)}`, x: this.x, y: this.y - 10 });
-                this.end_msg = label.make({ msg: `End at ${formatTime(exam.time.end)}`, x: -1, y: this.y - 10 });
+                // e.g. "End at 12:35pm (+5 min)" once time has been added
+                const added_mins = Math.round(exam.added_millis / mins_to_millis(1));
+                const added = added_mins > 0 ? ` (+${added_mins} min)` : "";
+                this.end_msg = label.make({ msg: `End at ${formatTime(exam.time.end)}${added}`, x: -1, y: this.y - 10 });
                 this.end_msg.x = this.width - this.end_msg.getWidthInPixels() + 25;
             },
             start_msg: null,
