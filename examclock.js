@@ -31,6 +31,14 @@
     const dark_red = "#d00000";
 
     //
+    // a plain sans-serif font is easier to read from far away, and on
+    // projectors, than the browser's default serif font; keep it the same
+    // as the page's font in index.html
+    //
+    const font_family = "Helvetica, Arial, sans-serif";
+    const font = (size) => `${size}px ${font_family}`;
+
+    //
     // animation frame rate, used only while a reminder message is moving
     //
     const frame_rate = 30;
@@ -191,7 +199,7 @@
             x: obj.x ?? 100,
             y: obj.y ?? 100,
             style: obj.style ?? "black",
-            font: obj.font ?? "25px serif",
+            font: obj.font ?? font(25),
             visible: obj.visible ?? true,
             measure(text) {
                 this.context.save();
@@ -214,14 +222,14 @@
             },
         }),
 
-        put(msg, x = 25, y = 25, font = "25px serif", style = "black") {
-            context.font = font;
+        put(msg, x = 25, y = 25, msg_font = font(25), style = "black") {
+            context.font = msg_font;
             context.fillStyle = style;
             context.fillText(msg, x, y);
         },
 
-        center(msg, y = 25, font = "25px serif", style = "black") {
-            context.font = font;
+        center(msg, y = 25, msg_font = font(25), style = "black") {
+            context.font = msg_font;
             context.fillStyle = style;
             const x = (view.width - context.measureText(msg).width) / 2;
             context.fillText(msg, x, y);
@@ -460,7 +468,7 @@
         const big_msg = {
             msg: "",
             y: 175,
-            font: "90px serif",
+            font: font(90),
             color: "blue",
         };
 
@@ -505,10 +513,10 @@
             draw() {
                 if (this.state === "hiding") return;
                 // shrink messages too long to fit across the clock
-                context.font = `${this.font_size}px serif`;
+                context.font = font(this.font_size);
                 const width = context.measureText(this.msg).width;
                 const size = Math.min(this.font_size, this.font_size * (view.width - 20) / width);
-                label.center(this.msg, this.y, `${size}px serif`);
+                label.center(this.msg, this.y, font(size));
             },
             update() {
                 const now = Date.now();
@@ -593,7 +601,7 @@
             // draw the time remaining, current time, and start/end time labels
             //
             label.center(big_msg.msg, big_msg.y, big_msg.font, big_msg.color);
-            label.center(currentTimeString(true), 210, "30px serif");
+            label.center(currentTimeString(true), 210, font(30));
             bar.start_msg.render();
             bar.end_msg.render();
 
