@@ -20,6 +20,12 @@
     const yellow = "#ffffaa";
 
     //
+    // used in the last 10 minutes; plain "orange" is hard to read on yellow
+    // (1.9:1 contrast), this is 4.6:1
+    //
+    const dark_orange = "#c05000";
+
+    //
     // animation frame rate, used only while a reminder message is moving
     //
     const frame_rate = 30;
@@ -569,9 +575,9 @@
                 big_msg.msg = seconds + (seconds === 1 ? " second left" : " seconds left");
                 big_msg.color = "red";
             } else if (exam.remaining.minutes() <= 10) {
-                bar.color = "orange";
+                bar.color = dark_orange;
                 big_msg.msg = exam.remaining.minutes() + " minutes left";
-                big_msg.color = "orange";
+                big_msg.color = dark_orange;
             } else {
                 bar.color = "blue";
                 big_msg.msg = exam.remaining.minutes() + " minutes left";
