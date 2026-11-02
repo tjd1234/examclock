@@ -267,14 +267,28 @@
             }
         });
 
+        // grow (or shrink) the announcement box to fit its text, but never
+        // below the size given by its rows attribute
+        const fitAnnouncements = () => {
+            announcements.style.height = "auto";
+            const border = announcements.offsetHeight - announcements.clientHeight;
+            if (announcements.scrollHeight > announcements.clientHeight) {
+                announcements.style.height = announcements.scrollHeight + border + "px";
+            }
+        };
+
         announcements.value = storage.get(announcement_key) ?? "";
+        fitAnnouncements();
         announcements.addEventListener("input", () => {
             storage.set(announcement_key, announcements.value);
+            fitAnnouncements();
         });
 
         window.addEventListener("resize", () => {
             canvas.width = 0.98 * window.innerWidth;
             bar.resize();
+            // a narrower window wraps the announcement onto more lines
+            fitAnnouncements();
             // the canvas is cleared on resize, so repaint it before the exam starts
             if (exam === null) background(yellow);
         });
@@ -414,7 +428,8 @@
                 scroll.state = "finished";
             } else if (exam.remaining.minutes() <= 1) {
                 bar.color = "red";
-                big_msg.msg = exam.remaining.seconds() + " seconds left";
+                const seconds = exam.remaining.seconds();
+                big_msg.msg = seconds + (seconds === 1 ? " second left" : " seconds left");
                 big_msg.color = "red";
             } else if (exam.remaining.minutes() <= 10) {
                 bar.color = "orange";
