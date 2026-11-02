@@ -127,6 +127,26 @@
 
     const exam_key = "examclock.exam";
     const announcement_key = "examclock.announcement";
+    // unlike the exam and announcement, these are kept when the timer is reset
+    const reminders_key = "examclock.reminders";
+
+    //
+    // reminder messages the clock shows one at a time; they can be edited
+    // on the page
+    //
+    const default_reminders = [
+        "Put your name and SFU student ID # on each page.",
+        "Raise your hand if you have a question or need to use the washroom.",
+        "Read the questions carefully.",
+        "Double-check your answers if you have time.",
+        "Have mercy on your marker: write neatly!",
+        "Pay attention to the details.",
+        "Relax. Stay calm. Chill.",
+        "Think!",
+    ];
+
+    // one message per line, ignoring blank lines
+    const parseReminders = (text) => text.split("\n").map((line) => line.trim()).filter((line) => line !== "");
 
     // a saved exam is resumed until this long after it ends
     const resume_grace_millis = mins_to_millis(30);
@@ -344,6 +364,26 @@
             fitAnnouncements();
         });
 
+        //
+        // the reminder messages can be edited (and are saved) at any time
+        //
+        const reminders_input = document.getElementById("reminders");
+        reminders_input.value = storage.get(reminders_key) ?? default_reminders.join("\n");
+        let reminders = parseReminders(reminders_input.value);
+
+        reminders_input.addEventListener("input", () => {
+            storage.set(reminders_key, reminders_input.value);
+            reminders = parseReminders(reminders_input.value);
+        });
+
+        document.getElementById("defaultremindersbutton").onclick = () => {
+            const defaults = default_reminders.join("\n");
+            if (reminders_input.value === defaults) return;
+            if (!confirm("Replace your reminder messages with the default ones?")) return;
+            reminders_input.value = defaults;
+            reminders_input.dispatchEvent(new Event("input"));
+        };
+
         // a narrower window wraps the announcement onto more lines
         window.addEventListener("resize", fitAnnouncements);
 
@@ -450,8 +490,14 @@
             sit_time: 30 * 1000,  // milliseconds
             hide_time: 5 * 1000,
             state: "hiding",  // one of: finished, descending, ascending, sitting, hiding
+            font_size: 25,
             draw() {
-                if (this.state !== "hiding") label.center(this.msg, this.y);
+                if (this.state === "hiding") return;
+                // shrink messages too long to fit across the clock
+                context.font = `${this.font_size}px serif`;
+                const width = context.measureText(this.msg).width;
+                const size = Math.min(this.font_size, this.font_size * (view.width - 20) / width);
+                label.center(this.msg, this.y, `${size}px serif`);
             },
             update() {
                 const now = Date.now();
@@ -474,10 +520,11 @@
                     case "hiding":
                         this.dx = 0;
                         this.dy = 0;
-                        if (t > this.hide_time) {
+                        // with no reminders, keep hiding until some are added
+                        if (t > this.hide_time && reminders.length > 0) {
                             this.state = "descending";
                             this.last_change = now;
-                            this.msg = randChoice(this.messages);
+                            this.msg = randChoice(reminders);
                         }
                         break;
                     case "descending":
@@ -503,16 +550,6 @@
                 this.y += this.dy;
             },
             msg: "<msg>",
-            messages: [
-                "Put your name and SFU student ID # on each page.",
-                "Raise your hand if you have a question or need to use the washroom.",
-                "Read the questions carefully.",
-                "Double-check your answers if you have time.",
-                "Have mercy on your marker: write neatly!",
-                "Pay attention to the details.",
-                "Relax. Stay calm. Chill.",
-                "Think!",
-            ],
         };
 
         const animationLoop = () => {

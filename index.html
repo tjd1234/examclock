@@ -43,6 +43,30 @@
 		#announcements:placeholder-shown {
 			font-size: 20px;
 		}
+
+		/* the reminder editor is on the left, the buttons on the right */
+		#footer {
+			display: flex;
+			justify-content: space-between;
+			align-items: flex-start;
+			gap: 20px;
+			margin-top: 10px;
+		}
+		#footer .buttons {
+			margin: 0;
+			white-space: nowrap;
+		}
+		#reminders_panel summary {
+			cursor: pointer;
+		}
+		#reminders_panel p {
+			max-width: 40em;
+		}
+		#reminders {
+			box-sizing: border-box;
+			width: min(40em, 70vw);
+			font: 16px serif;
+		}
 	</style>
 </head>
 
@@ -63,11 +87,22 @@ Your browser does not support the HTML5 Canvas.
 
 <textarea id="announcements" rows="3" placeholder="Type announcements for students here (e.g. corrections to the exam)."></textarea>
 
-<p style="text-align:right">
+<div id="footer">
+<details id="reminders_panel">
+<summary>Reminder messages</summary>
+<p>
+The clock shows one of these at a time, chosen at random. Put each message
+on its own line; changes take effect right away. Leave it empty to show no reminders.
+</p>
+<textarea id="reminders" rows="8" placeholder="No reminders will be shown."></textarea>
+<p><button id="defaultremindersbutton" type="button">Restore default messages</button></p>
+</details>
+<p class="buttons">
 <button id="fullscreenbutton" hidden>Full screen</button>
 <button id="resetbutton" hidden>Reset timer</button>
 <a href="https://github.com/tjd1234/examclock">Source code.</a>
 </p>
+</div>
 
 </body>
 </html>
