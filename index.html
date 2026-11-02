@@ -53,8 +53,17 @@
 			margin-top: 10px;
 		}
 		#footer .buttons {
-			margin: 0;
+			/* the auto left margin keeps the buttons on the right, even
+			   when the reminder editor is hidden */
+			margin: 0 0 0 auto;
 			white-space: nowrap;
+		}
+
+		/* in full screen, the footer shows only the "Exit full screen" button */
+		:root:fullscreen #reminders_panel,
+		:root:fullscreen #resetbutton,
+		:root:fullscreen #footer a {
+			display: none;
 		}
 		#reminders_panel summary {
 			cursor: pointer;
