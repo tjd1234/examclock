@@ -123,6 +123,7 @@
 		:root:fullscreen #reminders_panel,
 		:root:fullscreen #resetbutton,
 		:root:fullscreen [data-add-minutes],
+		:root:fullscreen #subtractbutton,
 		:root:fullscreen #footer a {
 			display: none;
 		}
@@ -175,6 +176,7 @@ on its own line; changes take effect right away. Leave it empty to show no remin
 <p><button id="defaultremindersbutton" type="button">Restore default messages</button></p>
 </details>
 <p class="buttons">
+<button id="subtractbutton" title="Take back 1 minute of added time" hidden>&minus;1 min</button>
 <button data-add-minutes="1" title="Add 1 minute to the exam" hidden>+1 min</button>
 <button data-add-minutes="5" title="Add 5 minutes to the exam" hidden>+5 min</button>
 <button id="fullscreenbutton" hidden>Full screen</button>

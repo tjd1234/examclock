@@ -320,6 +320,7 @@
         const dur_input = document.getElementById("dur_in_min");
         const reset_button = document.getElementById("resetbutton");
         const add_buttons = document.querySelectorAll("[data-add-minutes]");
+        const subtract_button = document.getElementById("subtractbutton");
         const announcements = document.getElementById("announcements");
         dur_input.value = 180;
 
@@ -333,6 +334,7 @@
             dur_form.hidden = true;
             reset_button.hidden = false;
             add_buttons.forEach((button) => { button.hidden = false; });
+            subtract_button.hidden = false;
             // during the exam the announcement box hides its hint (see
             // index.html) and is only one line tall until something is typed
             document.body.classList.add("exam_running");
@@ -408,6 +410,25 @@
         add_buttons.forEach((button) => {
             button.onclick = () => extendExam(Number(button.dataset.addMinutes));
         });
+
+        //
+        // take back a minute of added time, e.g. after clicking +5 by
+        // mistake; only time that was added can be taken back, so the exam
+        // is never shorter than it was when started, and the end time is
+        // never moved to now or earlier
+        //
+        const one_minute = mins_to_millis(1);
+        const canShorten = () => exam.added_millis >= one_minute
+            && exam.time.end.getTime() - one_minute > Date.now();
+
+        subtract_button.onclick = () => {
+            if (!canShorten()) return;
+            const new_end = new Date(exam.time.end.getTime() - one_minute);
+            exam = makeExam(exam.time.start, new_end, exam.added_millis - one_minute);
+            saveExam(exam);
+            bar.set_msg();
+            redrawNow();
+        };
 
         reset_button.onclick = () => {
             if (!confirm("Reset the timer and clear the announcement?")) return;
@@ -669,6 +690,9 @@
 
         const animationLoop = () => {
             background(yellow);
+
+            // greyed out when there's no added time left to take back
+            subtract_button.disabled = !canShorten();
 
             //
             // set colors and messages based on time remaining
