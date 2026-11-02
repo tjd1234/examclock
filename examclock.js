@@ -529,7 +529,9 @@
             state: "hiding",  // one of: finished, descending, ascending, sitting, hiding
             font_size: 25,
             draw() {
-                if (this.state === "hiding") return;
+                // nothing is shown once the exam is over, since students
+                // shouldn't always hand in their exams right away
+                if (this.state === "hiding" || this.state === "finished") return;
                 // shrink messages too long to fit across the clock
                 context.font = font(this.font_size);
                 const width = context.measureText(this.msg).width;
@@ -543,8 +545,6 @@
                     case "finished":
                         this.dx = 0;
                         this.dy = 0;
-                        this.y = 50;
-                        this.msg = "Hand in your exam!";
                         break;
                     case "sitting":
                         this.dx = 0;
