@@ -20,7 +20,7 @@
     const yellow = "#ffffaa";
 
     //
-    // animation frame rate
+    // animation frame rate, used only while a reminder message is moving
     //
     const frame_rate = 30;
 
@@ -267,7 +267,37 @@
             keepScreenAwake();
 
             // start the animation loop
-            setInterval(animationLoop, 1000 / frame_rate);
+            tick();
+        };
+
+        //
+        // To save battery, the clock is redrawn 30 times a second only while
+        // a reminder message is sliding in or out. Otherwise nothing on screen
+        // changes between seconds, so it's redrawn just after the current time
+        // or the time remaining next changes.
+        //
+        let tick_timer = null;
+
+        const tick = () => {
+            animationLoop();
+            const moving = scroll.state === "descending" || scroll.state === "ascending";
+            let delay = 1000 / frame_rate;
+            if (!moving) {
+                const until_clock_changes = 1000 - (Date.now() % 1000);
+                // the time remaining changes on the end time's second
+                // boundaries, which needn't line up with the clock's
+                const remaining = exam.remaining.millis();
+                const until_remaining_changes = remaining > 0 ? (remaining % 1000 || 1000) : 1000;
+                // the extra few milliseconds make sure the change has happened
+                delay = Math.min(until_clock_changes, until_remaining_changes) + 5;
+            }
+            tick_timer = setTimeout(tick, delay);
+        };
+
+        // redraw immediately, e.g. after the canvas is resized (which clears it)
+        const redrawNow = () => {
+            clearTimeout(tick_timer);
+            tick();
         };
 
         // the browser checks the duration against the input's min/max/step
@@ -323,8 +353,12 @@
         const clockAreaResized = () => {
             sizeCanvas();
             bar.resize();
-            // the canvas is cleared on resize, so repaint it before the exam starts
-            if (exam === null) background(yellow);
+            // the canvas is cleared on resize, so repaint it right away
+            if (exam === null) {
+                background(yellow);
+            } else {
+                redrawNow();
+            }
         };
         new ResizeObserver(clockAreaResized).observe(clock_area);
 
