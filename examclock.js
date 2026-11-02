@@ -85,28 +85,71 @@
 
     const mins_to_millis = (m) => 60 * m * 1000;
 
-    const makeExam = (dur_in_min) => {
-        const now = new Date();
-        const future = new Date(now.getTime() + mins_to_millis(dur_in_min));
+    const makeExam = (start, end) => {
+        const dur_in_millis = end.getTime() - start.getTime();
         return {
             time: {
-                start: now,
-                end: future,
+                start,
+                end,
             },
             duration: {
-                millis: mins_to_millis(dur_in_min),
-                seconds: 60 * dur_in_min,
-                minutes: dur_in_min,
-                hours: dur_in_min / 60,
+                millis: dur_in_millis,
+                seconds: dur_in_millis / 1000,
+                minutes: dur_in_millis / mins_to_millis(1),
+                hours: dur_in_millis / mins_to_millis(60),
             },
             remaining: {
-                millis() { return future.getTime() - Date.now(); },
+                millis() { return end.getTime() - Date.now(); },
                 seconds() { return Math.ceil(this.millis() / 1000); },
                 minutes() { return Math.ceil(this.seconds() / 60); },
             },
             going() { return !this.finished(); },
             finished() { return this.remaining.millis() <= 0; },
         };
+    };
+
+    //
+    // The running exam and the announcement text are saved in the browser
+    // (localStorage), so reloading the page picks up where it left off.
+    // Storage can be unavailable (e.g. private windows), so failures are ignored.
+    //
+    const storage = {
+        get(key) {
+            try { return localStorage.getItem(key); } catch { return null; }
+        },
+        set(key, value) {
+            try { localStorage.setItem(key, value); } catch { /* not saved */ }
+        },
+        remove(key) {
+            try { localStorage.removeItem(key); } catch { /* nothing to remove */ }
+        },
+    };
+
+    const exam_key = "examclock.exam";
+    const announcement_key = "examclock.announcement";
+
+    // a saved exam is resumed until this long after it ends
+    const resume_grace_millis = mins_to_millis(30);
+
+    const saveExam = (exam) => {
+        storage.set(exam_key, JSON.stringify({
+            start: exam.time.start.getTime(),
+            end: exam.time.end.getTime(),
+        }));
+    };
+
+    // returns the saved exam, or null if there isn't one worth resuming
+    const loadSavedExam = () => {
+        try {
+            const saved = JSON.parse(storage.get(exam_key));
+            if (saved && Date.now() < saved.end + resume_grace_millis) {
+                return makeExam(new Date(saved.start), new Date(saved.end));
+            }
+        } catch {
+            // corrupt saved data: fall through and discard it
+        }
+        storage.remove(exam_key);
+        return null;
     };
 
     const raw_label = (context, canvas) => ({
@@ -178,24 +221,57 @@
         const start_button = document.getElementById("startbutton");
         const dur_input = document.getElementById("dur_in_min");
         const dur_span = document.getElementById("dur_span");
+        const reset_button = document.getElementById("resetbutton");
+        const announcements = document.getElementById("announcements");
         dur_input.value = 180;
 
         let exam = null;
+        let resetting = false;
+
+        const startExam = (new_exam) => {
+            exam = new_exam;
+            bar.set_msg();
+            start_button.style.visibility = "hidden";
+            dur_span.style.visibility = "hidden";
+            reset_button.hidden = false;
+            keepScreenAwake();
+
+            // start the animation loop
+            setInterval(animationLoop, 1000 / frame_rate);
+        };
 
         start_button.onclick = () => {
             if (isNaN(dur_input.value) || dur_input.value === "") {
                 alert("Please enter duration in minutes.");
                 return;
             }
-            exam = makeExam(parseInt(dur_input.value, 10));
-            bar.set_msg();
-            start_button.style.visibility = "hidden";
-            dur_span.style.visibility = "hidden";
-            keepScreenAwake();
-
-            // start the animation loop
-            setInterval(animationLoop, 1000 / frame_rate);
+            const now = new Date();
+            const end = new Date(now.getTime() + mins_to_millis(parseInt(dur_input.value, 10)));
+            const new_exam = makeExam(now, end);
+            saveExam(new_exam);
+            startExam(new_exam);
         };
+
+        reset_button.onclick = () => {
+            if (!confirm("Reset the timer and clear the announcement?")) return;
+            storage.remove(exam_key);
+            storage.remove(announcement_key);
+            resetting = true;
+            location.reload();
+        };
+
+        // ask before closing or reloading the tab while the exam is running
+        window.addEventListener("beforeunload", (event) => {
+            if (exam !== null && exam.going() && !resetting) {
+                event.preventDefault();
+                event.returnValue = "";
+            }
+        });
+
+        announcements.value = storage.get(announcement_key) ?? "";
+        announcements.addEventListener("input", () => {
+            storage.set(announcement_key, announcements.value);
+        });
 
         window.addEventListener("resize", () => {
             canvas.width = 0.98 * window.innerWidth;
@@ -385,6 +461,12 @@
             scroll.draw();
             scroll.update();
         };
+
+        //
+        // resume an exam that was running before the page was reloaded
+        //
+        const saved_exam = loadSavedExam();
+        if (saved_exam !== null) startExam(saved_exam);
     };
 
     //
