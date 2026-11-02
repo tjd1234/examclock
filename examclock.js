@@ -152,7 +152,8 @@
         return null;
     };
 
-    const raw_label = (context, canvas) => ({
+    // view is the canvas's size in CSS pixels: { width, height }
+    const raw_label = (context, view) => ({
         make: (obj) => ({
             context,
             msg: obj.msg ?? "<label_msg>",
@@ -191,7 +192,7 @@
         center(msg, y = 25, font = "25px serif", style = "black") {
             context.font = font;
             context.fillStyle = style;
-            const x = (canvas.width - context.measureText(msg).width) / 2;
+            const x = (view.width - context.measureText(msg).width) / 2;
             context.fillText(msg, x, y);
         },
     });
@@ -207,13 +208,30 @@
         }
         const context = canvas.getContext("2d");
 
-        canvas.width = 0.98 * window.innerWidth;
-        canvas.height = 400;
+        //
+        // Everything is drawn in CSS pixels, in a view.width x view.height
+        // area. The canvas itself has devicePixelRatio times as many pixels,
+        // so text and lines are sharp on high-density screens and projectors.
+        //
+        const view = { width: 0, height: 400 };
+
+        const sizeCanvas = () => {
+            const ratio = window.devicePixelRatio || 1;
+            view.width = 0.98 * window.innerWidth;
+            canvas.style.width = view.width + "px";
+            canvas.style.height = view.height + "px";
+            canvas.width = Math.round(view.width * ratio);
+            canvas.height = Math.round(view.height * ratio);
+            // resizing the canvas resets its transform, so scale it again
+            context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        };
+
+        sizeCanvas();
 
         //
         // make the label object
         //
-        const label = raw_label(context, canvas);
+        const label = raw_label(context, view);
 
         //
         // set event handlers and other variables
@@ -284,21 +302,35 @@
             fitAnnouncements();
         });
 
-        window.addEventListener("resize", () => {
-            canvas.width = 0.98 * window.innerWidth;
+        // also called when the screen's pixel density changes (e.g. browser
+        // zoom, or moving the window to another monitor)
+        const windowResized = () => {
+            sizeCanvas();
             bar.resize();
             // a narrower window wraps the announcement onto more lines
             fitAnnouncements();
             // the canvas is cleared on resize, so repaint it before the exam starts
             if (exam === null) background(yellow);
-        });
+        };
+        window.addEventListener("resize", windowResized);
+
+        // a change in pixel density doesn't always fire "resize", so watch
+        // for it directly; the query is for the current density, so it's
+        // re-created after each change
+        const watchPixelRatio = () => {
+            matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener("change", () => {
+                windowResized();
+                watchPixelRatio();
+            }, { once: true });
+        };
+        watchPixelRatio();
 
         //
         // helper functions
         //
         const background = (color) => {
             context.fillStyle = color;
-            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillRect(0, 0, view.width, view.height);
         };
 
         background(yellow);
@@ -319,10 +351,10 @@
         const bar = {
             x: 30,
             y: 300,
-            width: canvas.width - 60,
+            width: view.width - 60,
             height: 50,
             resize() {
-                this.width = canvas.width - 60;
+                this.width = view.width - 60;
                 this.height = 50;
                 if (exam !== null) this.set_msg();
             },
@@ -467,7 +499,7 @@
             const pct = constrained_map(millis_left, exam.duration.millis, 0, 0, 100);
             const pct_msg = Math.floor(pct) + "% done";
             const pct_msg_width = context.measureText(pct_msg).width;
-            label.put(pct_msg, constrain(w, bar.x, canvas.width - (pct_msg_width + 3)), bar.y + 75);
+            label.put(pct_msg, constrain(w, bar.x, view.width - (pct_msg_width + 3)), bar.y + 75);
 
             //
             // scroll bar
