@@ -58,6 +58,31 @@
 
     const currentTimeString = (include_seconds = false) => formatTime(new Date(), include_seconds);
 
+    //
+    // keep the screen from dimming or sleeping while the clock is running
+    //
+    const keepScreenAwake = () => {
+        if (!("wakeLock" in navigator)) {
+            log("screen wake lock is not supported in this browser");
+            return;
+        }
+        const request = async () => {
+            try {
+                await navigator.wakeLock.request("screen");
+                log("screen wake lock acquired");
+            } catch (err) {
+                log(`screen wake lock failed: ${err.message}`);
+            }
+        };
+        request();
+
+        // the browser releases the lock when the tab is hidden, so
+        // request it again when the tab becomes visible
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") request();
+        });
+    };
+
     const mins_to_millis = (m) => 60 * m * 1000;
 
     const makeExam = (dur_in_min) => {
@@ -166,6 +191,7 @@
             bar.set_msg();
             start_button.style.visibility = "hidden";
             dur_span.style.visibility = "hidden";
+            keepScreenAwake();
 
             // start the animation loop
             setInterval(animationLoop, 1000 / frame_rate);
